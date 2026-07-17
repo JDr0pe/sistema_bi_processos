@@ -1,11 +1,9 @@
-# Ignorar arquivos de Excel (Garante que nenhum dado real vaze)
+# Ignorar arquivos de Excel e Banco de Dados (Garante que nenhum dado real vaze)
 *.xlsx
 *.xls
 *.csv
+*.db
 
-# Ignorar as pastas de saída geradas pelo seu script
-arquivo/
-saida/
 
 # Ignorar arquivos temporários do Python e ambientes virtuais
 __pycache__/
