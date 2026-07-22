@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automação de Planilhas</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    /* ── Tokens: Dark ─────────────────────────────────────────── */
+    :root, [data-theme="dark"] {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface-2: #22263a;
+      --border:    #2a2d3a;
+      --accent:    #f97316;
+      --accent-dim: rgba(249,115,22,0.12);
+      --accent-h:  #ea6a05;
+      --seg:       #00d4aa;
+      --danger:    #ff4d6d;
+      --text:      #e8eaf0;
+      --muted:     #7b7f94;
+      --canvas-grid: #2a2d3a;
+      --canvas-muted: #7b7f94;
+      --canvas-bg: #0f1117;
+    }
+
+    /* ── Tokens: Light ────────────────────────────────────────── */
+    [data-theme="light"] {
+      --bg:        #f5f5f0;
+      --surface:   #ffffff;
+      --surface-2: #f0ede8;
+      --border:    #e2ddd8;
+      --accent:    #f97316;
+      --accent-dim: rgba(249,115,22,0.09);
+      --accent-h:  #ea6a05;
+      --seg:       #0a9e7e;
+      --danger:    #dc2626;
+      --text:      #1a1a1a;
+      --muted:     #888580;
+      --canvas-grid: #e2ddd8;
+      --canvas-muted: #888580;
+      --canvas-bg: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .layout { display: flex; flex: 1; }
+
+    .sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0 16px;
+      position: fixed;
+      height: 100vh;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 0 24px 20px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.05em;
+    }
+    .logo span { color: var(--muted); }
+
+    nav { margin-top: 16px; flex: 1; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 24px;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { color: var(--text); background: var(--accent-dim); }
+    .nav-item.active {
+      color: var(--accent);
+      border-left-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+
+    /* ── Theme toggle ─────────────────────────────────────────── */
+    .theme-toggle {
+      margin: 0 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s;
+    }
+    .theme-toggle:hover { border-color: var(--accent); color: var(--text); }
+
+    .toggle-pill {
+      width: 36px;
+      height: 20px;
+      border-radius: 99px;
+      background: var(--border);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-pill.on { background: var(--accent); }
+    .toggle-pill::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: white;
+      top: 3px; left: 3px;
+      transition: transform 0.2s;
+    }
+    .toggle-pill.on::after { transform: translateX(16px); }
+
+    /* ── Main ─────────────────────────────────────────────────── */
+    .main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 36px;
+      max-width: calc(100% - 220px);
+    }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .page-sub   { font-size: 13px; color: var(--muted); margin-bottom: 32px; }
+
+    /* ── Cards ────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── KPI Row ──────────────────────────────────────────────── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+    .kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+    .kpi-value.acc { color: var(--accent); }
+    .kpi-value.seg { color: var(--seg); }
+    .kpi-sub   { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    /* ── Charts ───────────────────────────────────────────────── */
+    .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+    .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+    .bar-item  { display: flex; flex-direction: column; gap: 4px; }
+    .bar-meta  { display: flex; justify-content: space-between; font-size: 12px; }
+    .bar-name  { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+    .bar-count { color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .bar-track { height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; transition: width 0.6s ease; background: var(--accent); }
+    .bar-fill.seg { background: var(--seg); }
+
+    canvas { display: block; width: 100% !important; }
+
+    /* ── Table ────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 10px 12px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--accent-dim); }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    }
+    .badge.cap { background: var(--accent-dim); color: var(--accent); }
+    .badge.seg { background: rgba(0,212,170,0.12); color: var(--seg); }
+
+    /* ── Upload ───────────────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 48px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-dim); }
+    .upload-zone input { display: none; }
+    .upload-icon { font-size: 36px; margin-bottom: 12px; }
+    .upload-hint { font-size: 14px; color: var(--muted); }
+    .upload-hint strong { color: var(--text); }
+    .upload-filename { margin-top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent); color: white; border: none;
+      padding: 10px 24px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; margin-top: 16px; transition: background 0.15s;
+    }
+    .btn:hover { background: var(--accent-h); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .status-msg { margin-top: 14px; font-size: 13px; padding: 10px 14px; border-radius: 6px; display: none; }
+    .status-msg.ok  { background: rgba(0,212,170,0.1);  color: var(--seg);    display: block; }
+    .status-msg.err { background: rgba(255,77,109,0.1); color: var(--danger); display: block; }
+
+    /* ── Log list ─────────────────────────────────────────────── */
+    .log-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .log-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+    }
+    .log-file { font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .log-date { color: var(--muted); font-size: 12px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--seg); margin-right: 8px; flex-shrink: 0; }
+
+    /* ── Filters ──────────────────────────────────────────────── */
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 12px; color: var(--muted); }
+
+    select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.2s;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+
+    .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 32px; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Automação<span> Controle</span></div>
+    <nav>
+      <div class="nav-item active" data-page="upload">
+        <span class="icon">⬆</span> Upload
+      </div>
+      <div class="nav-item" data-page="dashboard">
+        <span class="icon">◈</span> Dashboard
+      </div>
+      <div class="nav-item" data-page="historico">
+        <span class="icon">≡</span> Histórico
+      </div>
+    </nav>
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle" id="themeToggle">
+      <span id="themeLabel">Modo escuro</span>
+      <div class="toggle-pill on" id="togglePill"></div>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main class="main">
+
+    <!-- ── Upload ─────────────────────────────────────────────── -->
+    <section class="page active" id="page-upload">
+      <div class="page-title">Enviar Planilha</div>
+      <div class="page-sub">Faça upload do arquivo .xlsx para processar e salvar no banco.</div>
+
+      <div class="card">
+        <div class="card-title">Arquivo</div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" accept=".xlsx,.xls">
+          <div class="upload-icon">📂</div>
+          <div class="upload-hint"><strong>Clique para selecionar</strong> ou arraste o arquivo aqui</div>
+          <div class="upload-hint" style="margin-top:4px">Suporta .xlsx e .xls</div>
+          <div class="upload-filename" id="fileName"></div>
+        </div>
+        <button class="btn" id="btnEnviar" disabled>⬆ Processar arquivo</button>
+        <div class="status-msg" id="statusMsg"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Uploads recentes</div>
+        <ul class="log-list" id="logList">
+          <li class="empty">Nenhum upload nesta sessão.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── Dashboard ──────────────────────────────────────────── -->
+    <section class="page" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Visão geral dos processos processados.</div>
+
+      <div class="filters">
+        <span class="filter-label">Filtrar por:</span>
+        <select id="filtroAno"><option value="">Todos os anos</option></select>
+        <select id="filtroTipo">
+          <option value="">CAP + SEG</option>
+          <option value="CAP">CAP</option>
+          <option value="SEG">SEG</option>
+        </select>
+        <select id="filtroUsuario"><option value="">Todos os usuários</option></select>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-label">Total de processos</div>
+          <div class="kpi-value" id="kpiTotal">—</div>
+          <div class="kpi-sub">todos os períodos</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">CAP</div>
+          <div class="kpi-value acc" id="kpiCap">—</div>
+          <div class="kpi-sub" id="kpiCapPct">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">SEG</div>
+          <div class="kpi-value seg" id="kpiSeg">—</div>
+          <div class="kpi-sub" id="kpiSegPct">—</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Responsáveis</div>
+          <div class="kpi-value" id="kpiResp">—</div>
+          <div class="kpi-sub">ativos no período</div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Top responsáveis</div>
+          <div class="bar-chart" id="barChart">
+            <div class="empty">Sem dados.</div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">Evolução mensal</div>
+          <canvas id="lineCanvas" height="200"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Histórico ──────────────────────────────────────────── -->
+    <section class="page" id="page-historico">
+      <div class="page-title">Histórico Completo</div>
+      <div class="page-sub">Todos os registros armazenados no banco.</div>
+      <div class="card">
+        <div class="table-wrap">
+          <div id="tabelaWrap"><div class="empty">Carregando...</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const API = "http://localhost:8000"
+let dadosGlobais = []
+
+// ── Tema ───────────────────────────────────────────────────────────────────
+const html      = document.documentElement
+const pill      = document.getElementById("togglePill")
+const themeLabel = document.getElementById("themeLabel")
+
+let darkMode = true
+
+document.getElementById("themeToggle").addEventListener("click", () => {
+  darkMode = !darkMode
+  html.setAttribute("data-theme", darkMode ? "dark" : "light")
+  pill.classList.toggle("on", darkMode)
+  themeLabel.textContent = darkMode ? "Modo escuro" : "Modo claro"
+  // Redesenha o canvas com as cores corretas
+  renderDashboard()
+})
+
+// ── Navegação ──────────────────────────────────────────────────────────────
+document.querySelectorAll(".nav-item").forEach(item => {
+  item.addEventListener("click", () => {
+    const target = item.dataset.page
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"))
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"))
+    item.classList.add("active")
+    document.getElementById(`page-${target}`).classList.add("active")
+    if (target === "dashboard") renderDashboard()
+    if (target === "historico") carregarHistorico()
+  })
+})
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+const zone      = document.getElementById("uploadZone")
+const fileInput = document.getElementById("fileInput")
+const btnEnviar = document.getElementById("btnEnviar")
+const statusMsg = document.getElementById("statusMsg")
+const fileName  = document.getElementById("fileName")
+
+zone.addEventListener("click", () => fileInput.click())
+zone.addEventListener("dragover",  e => { e.preventDefault(); zone.classList.add("drag") })
+zone.addEventListener("dragleave", () => zone.classList.remove("drag"))
+zone.addEventListener("drop", e => {
+  e.preventDefault(); zone.classList.remove("drag")
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0])
+})
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) setFile(fileInput.files[0]) })
+
+function setFile(file) {
+  fileName.textContent = file.name
+  btnEnviar.disabled = false
+  statusMsg.className = "status-msg"
+  statusMsg.textContent = ""
+}
+
+btnEnviar.addEventListener("click", async () => {
+  const file = fileInput.files[0]
+  if (!file) return
+  btnEnviar.disabled = true
+  statusMsg.className = "status-msg"
+  statusMsg.textContent = "Processando..."
+
+  const form = new FormData()
+  form.append("file", file)
+
+  try {
+    const res  = await fetch(`${API}/upload`, { method: "POST", body: form })
+    const data = await res.json()
+    if (res.ok) {
+      statusMsg.className = "status-msg ok"
+      statusMsg.textContent = "✅ " + data.mensagem
+      adicionarLog(file.name)
+      await carregarDados()
+    } else {
+      statusMsg.className = "status-msg err"
+      statusMsg.textContent = "❌ " + (data.detail || "Erro desconhecido")
+    }
+  } catch {
+    statusMsg.className = "status-msg err"
+    statusMsg.textContent = "❌ Não foi possível conectar ao servidor."
+  } finally {
+    btnEnviar.disabled = false
+  }
+})
+
+function adicionarLog(nome) {
+  const list = document.getElementById("logList")
+  const empty = list.querySelector(".empty")
+  if (empty) empty.remove()
+  const now = new Date().toLocaleString("pt-BR")
+  const li = document.createElement("li")
+  li.className = "log-item"
+  li.innerHTML = `
+    <span style="display:flex;align-items:center">
+      <span class="dot"></span>
+      <span class="log-file">${nome}</span>
+    </span>
+    <span class="log-date">${now}</span>`
+  list.prepend(li)
+}
+
+// ── Dados ──────────────────────────────────────────────────────────────────
+async function carregarDados() {
+  try {
+    const res = await fetch(`${API}/historico`)
+    dadosGlobais = await res.json()
+    popularFiltros()
+  } catch {
+    dadosGlobais = []
+  }
+}
+
+function popularFiltros() {
+  // Anos
+  const anos = [...new Set(dadosGlobais.map(r => r.Ano))].sort()
+  const selAno = document.getElementById("filtroAno")
+  selAno.innerHTML = '<option value="">Todos os anos</option>'
+  anos.forEach(a => {
+    const o = document.createElement("option")
+    o.value = a; o.textContent = a; selAno.appendChild(o)
+  })
+
+  // Usuários
+  const users = [...new Set(dadosGlobais.map(r => r.Responsavel))].sort()
+  const selUser = document.getElementById("filtroUsuario")
+  selUser.innerHTML = '<option value="">Todos os usuários</option>'
+  users.forEach(u => {
+    const o = document.createElement("option")
+    o.value = u; o.textContent = u; selUser.appendChild(o)
+  })
+}
+
+function dadosFiltrados() {
+  const ano     = document.getElementById("filtroAno").value
+  const tipo    = document.getElementById("filtroTipo").value
+  const usuario = document.getElementById("filtroUsuario").value
+  return dadosGlobais.filter(r =>
+    (!ano     || r.Ano          == ano)  &&
+    (!tipo    || r.Tipo         === tipo) &&
+    (!usuario || r.Responsavel  === usuario)
+  )
+}
+
+document.getElementById("filtroAno").addEventListener("change",     renderDashboard)
+document.getElementById("filtroTipo").addEventListener("change",    renderDashboard)
+document.getElementById("filtroUsuario").addEventListener("change", renderDashboard)
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const rows = dadosFiltrados()
+
+  const total = rows.reduce((s, r) => s + r.Quantidade, 0)
+  const cap   = rows.filter(r => r.Tipo === "CAP").reduce((s, r) => s + r.Quantidade, 0)
+  const seg   = rows.filter(r => r.Tipo === "SEG").reduce((s, r) => s + r.Quantidade, 0)
+  const resps = new Set(rows.map(r => r.Responsavel)).size
+
+  document.getElementById("kpiTotal").textContent = total.toLocaleString("pt-BR")
+  document.getElementById("kpiCap").textContent   = cap.toLocaleString("pt-BR")
+  document.getElementById("kpiSeg").textContent   = seg.toLocaleString("pt-BR")
+  document.getElementById("kpiResp").textContent  = resps
+  document.getElementById("kpiCapPct").textContent = total ? `${((cap/total)*100).toFixed(1)}% do total` : "—"
+  document.getElementById("kpiSegPct").textContent = total ? `${((seg/total)*100).toFixed(1)}% do total` : "—"
+
+  // Bar chart — top responsáveis
+  const filtroUsuario = document.getElementById("filtroUsuario").value
+  const filtroTipo    = document.getElementById("filtroTipo").value
+
+  const porResp = {}
+  rows.forEach(r => { porResp[r.Responsavel] = (porResp[r.Responsavel] || 0) + r.Quantidade })
+  const top    = Object.entries(porResp).sort((a,b) => b[1]-a[1]).slice(0, 8)
+  const maxVal = top[0]?.[1] || 1
+
+  const barChart = document.getElementById("barChart")
+  if (!top.length) {
+    barChart.innerHTML = '<div class="empty">Sem dados para o filtro selecionado.</div>'
+  } else {
+    barChart.innerHTML = top.map(([nome, val]) => {
+      const pct    = (val / maxVal * 100).toFixed(1)
+      const isUser = filtroUsuario && nome === filtroUsuario
+      const classe = filtroTipo === "SEG" ? "seg" : ""
+      const highlight = isUser ? `style="font-weight:700;color:var(--accent)"` : ""
+      return `
+        <div class="bar-item">
+          <div class="bar-meta">
+            <span class="bar-name" ${highlight}>${nome}</span>
+            <span class="bar-count">${val}</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill ${classe}" style="width:${pct}%"></div>
+          </div>
+        </div>`
+    }).join("")
+  }
+
+  // Line chart
+  const porMes = {}
+  rows.forEach(r => {
+    const chave = `${r.Ano}/${String(r.Mês).padStart(2,"0")}`
+    porMes[chave] = (porMes[chave] || 0) + r.Quantidade
+  })
+  const labels = Object.keys(porMes).sort()
+  const values = labels.map(k => porMes[k])
+  drawLine(labels, values)
+}
+
+// ── Canvas line chart ──────────────────────────────────────────────────────
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+function drawLine(labels, values) {
+  const canvas = document.getElementById("lineCanvas")
+  const ctx    = canvas.getContext("2d")
+  const W = canvas.offsetWidth || 400
+  const H = 200
+  canvas.width  = W
+  canvas.height = H
+  ctx.clearRect(0, 0, W, H)
+
+  const gridColor  = getCSSVar("--canvas-grid")
+  const mutedColor = getCSSVar("--canvas-muted")
+  const accentColor = getCSSVar("--accent")
+  const bgColor    = getCSSVar("--canvas-bg")
+
+  if (!values.length) {
+    ctx.fillStyle = mutedColor
+    ctx.font = "13px Inter"
+    ctx.textAlign = "center"
+    ctx.fillText("Sem dados", W/2, H/2)
+    return
+  }
+
+  const pad = { top: 16, right: 16, bottom: 32, left: 40 }
+  const cW  = W - pad.left - pad.right
+  const cH  = H - pad.top  - pad.bottom
+  const max = Math.max(...values) || 1
+
+  const xOf = i => pad.left + (i / (labels.length - 1 || 1)) * cW
+  const yOf = v => pad.top  + cH - (v / max) * cH
+
+  // Grid
+  ctx.strokeStyle = gridColor
+  ctx.lineWidth = 1
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (cH / 4) * i
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke()
+  }
+
+  // Area
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH)
+  grad.addColorStop(0, darkMode ? "rgba(249,115,22,0.25)" : "rgba(249,115,22,0.15)")
+  grad.addColorStop(1, "rgba(249,115,22,0)")
+  ctx.beginPath()
+  ctx.moveTo(xOf(0), yOf(values[0]))
+  values.forEach((v, i) => i > 0 && ctx.lineTo(xOf(i), yOf(v)))
+  ctx.lineTo(xOf(values.length - 1), pad.top + cH)
+  ctx.lineTo(xOf(0), pad.top + cH)
+  ctx.closePath()
+  ctx.fillStyle = grad
+  ctx.fill()
+
+  // Line
+  ctx.beginPath()
+  ctx.strokeStyle = accentColor
+  ctx.lineWidth = 2
+  ctx.lineJoin  = "round"
+  values.forEach((v, i) => i === 0 ? ctx.moveTo(xOf(i), yOf(v)) : ctx.lineTo(xOf(i), yOf(v)))
+  ctx.stroke()
+
+  // Dots
+  values.forEach((v, i) => {
+    ctx.beginPath()
+    ctx.arc(xOf(i), yOf(v), 4, 0, Math.PI * 2)
+    ctx.fillStyle   = accentColor
+    ctx.strokeStyle = bgColor
+    ctx.lineWidth   = 2
+    ctx.fill(); ctx.stroke()
+  })
+
+  // X labels
+  ctx.fillStyle  = mutedColor
+  ctx.font       = "11px Inter"
+  ctx.textAlign  = "center"
+  const step = Math.ceil(labels.length / 6)
+  labels.forEach((l, i) => {
+    if (i % step === 0 || i === labels.length - 1)
+      ctx.fillText(l, xOf(i), H - 8)
+  })
+
+  // Y labels
+  ctx.textAlign = "right"
+  for (let i = 0; i <= 4; i++) {
+    const v = Math.round(max - (max / 4) * i)
+    const y = pad.top + (cH / 4) * i
+    ctx.fillText(v, pad.left - 6, y + 4)
+  }
+}
+
+// ── Histórico ──────────────────────────────────────────────────────────────
+async function carregarHistorico() {
+  const wrap = document.getElementById("tabelaWrap")
+  wrap.innerHTML = '<div class="empty">Carregando...</div>'
+  try {
+    const res  = await fetch(`${API}/historico`)
+    const rows = await res.json()
+
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="empty">Nenhum dado encontrado.</div>'
+      return
+    }
+
+    const cols = Object.keys(rows[0])
+    const ths  = cols.map(c => `<th>${c}</th>`).join("")
+    const trs  = rows.map(r => `
+      <tr>${cols.map(c => {
+        if (c === "Tipo") return `<td><span class="badge ${r[c].toLowerCase()}">${r[c]}</span></td>`
+        return `<td>${r[c] ?? "—"}</td>`
+      }).join("")}</tr>`).join("")
+
+    wrap.innerHTML = `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`
+  } catch {
+    wrap.innerHTML = '<div class="empty">Erro ao carregar dados. O servidor está online?</div>'
+  }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+carregarDados()
+</script>
+
+</body>
+</html>
