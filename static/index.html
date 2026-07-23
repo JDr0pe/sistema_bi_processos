@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" data-theme="dark">
+<html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -56,61 +56,64 @@
     }
 
     /* ── Layout ───────────────────────────────────────────────── */
-    .layout { display: flex; flex: 1; }
+    .layout { display: flex; flex-direction: column; min-height: 100vh; }
 
-    .sidebar {
-      width: 220px;
+    .top-header {
+      height: 64px;
       background: var(--surface);
-      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
       display: flex;
-      flex-direction: column;
-      padding: 24px 0 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
       position: fixed;
-      height: 100vh;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
       transition: background 0.2s, border-color 0.2s;
     }
 
     .logo {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
       color: var(--accent);
-      padding: 0 24px 20px;
-      border-bottom: 1px solid var(--border);
       letter-spacing: 0.05em;
     }
     .logo span { color: var(--muted); }
 
-    nav { margin-top: 16px; flex: 1; }
+    .top-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 24px;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 6px;
       font-size: 14px;
       color: var(--muted);
       cursor: pointer;
-      border-left: 3px solid transparent;
       transition: all 0.15s;
       user-select: none;
     }
     .nav-item:hover { color: var(--text); background: var(--accent-dim); }
     .nav-item.active {
       color: var(--accent);
-      border-left-color: var(--accent);
       background: var(--accent-dim);
+      font-weight: 600;
     }
-    .nav-item .icon { font-size: 15px; width: 20px; text-align: center; }
+    .nav-item .icon { font-size: 14px; text-align: center; }
 
     /* ── Theme toggle ─────────────────────────────────────────── */
     .theme-toggle {
-      margin: 0 16px 8px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      border-radius: 8px;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
       border: 1px solid var(--border);
       font-size: 12px;
       color: var(--muted);
@@ -121,8 +124,8 @@
     .theme-toggle:hover { border-color: var(--accent); color: var(--text); }
 
     .toggle-pill {
-      width: 36px;
-      height: 20px;
+      width: 32px;
+      height: 18px;
       border-radius: 99px;
       background: var(--border);
       position: relative;
@@ -133,20 +136,21 @@
     .toggle-pill::after {
       content: '';
       position: absolute;
-      width: 14px; height: 14px;
+      width: 12px; height: 12px;
       border-radius: 50%;
       background: white;
       top: 3px; left: 3px;
       transition: transform 0.2s;
     }
-    .toggle-pill.on::after { transform: translateX(16px); }
+    .toggle-pill.on::after { transform: translateX(14px); }
 
     /* ── Main ─────────────────────────────────────────────────── */
     .main {
-      margin-left: 220px;
+      margin-top: 64px;
+      margin-left: 0;
       flex: 1;
       padding: 36px;
-      max-width: calc(100% - 220px);
+      max-width: 100%;
     }
 
     .page { display: none; }
@@ -281,16 +285,230 @@
     select:focus { outline: none; border-color: var(--accent); }
 
     .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 32px; }
+
+    /* ── Modal ────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+    .modal-header {
+      margin-bottom: 16px;
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .modal-title span {
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .modal-body {
+      margin-bottom: 24px;
+    }
+    .modal-text {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .modal-text strong {
+      color: var(--text);
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--surface-2);
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .modal-footer .btn {
+      margin-top: 0;
+    }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover {
+      background: var(--surface-2);
+      border-color: var(--muted);
+    }
+
+    /* ── Multiselect ────────────────────────────────────────── */
+    .multiselect {
+      position: relative;
+      display: inline-block;
+    }
+    .select-box {
+      position: relative;
+      cursor: pointer;
+    }
+    .select-box select {
+      min-width: 200px;
+      cursor: pointer;
+    }
+    .overSelect {
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 0;
+    }
+    .checkboxes {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1010;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .checkboxes label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 4px;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+    .checkboxes label:hover {
+      background: var(--accent-dim);
+    }
+    .checkboxes input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+    .checkbox-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-clear:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* ── Grouped Bar Chart ────────────────────────────────────── */
+    .bar-group-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .bar-group-item:hover {
+      border-color: var(--accent);
+    }
+    .bar-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .bar-group-name {
+      color: var(--text);
+    }
+    .bar-group-total {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bar-group-sub {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-left: 8px;
+      border-left: 2px solid var(--border);
+    }
+    .bar-type-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .bar-pct {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
   </style>
 </head>
 <body>
 
 <div class="layout">
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="logo">Automação<span> Controle</span></div>
-    <nav>
+  <!-- Top Header -->
+  <header class="top-header">
+    <div class="logo">Controle <span>R&C</span></div>
+    <nav class="top-nav">
       <div class="nav-item active" data-page="upload">
         <span class="icon">⬆</span> Upload
       </div>
@@ -304,10 +522,10 @@
 
     <!-- Theme toggle -->
     <div class="theme-toggle" id="themeToggle">
-      <span id="themeLabel">Modo escuro</span>
-      <div class="toggle-pill on" id="togglePill"></div>
+      <span id="themeLabel">Modo claro</span>
+      <div class="toggle-pill" id="togglePill"></div>
     </div>
-  </aside>
+  </header>
 
   <!-- Content -->
   <main class="main">
@@ -346,12 +564,23 @@
       <div class="filters">
         <span class="filter-label">Filtrar por:</span>
         <select id="filtroAno"><option value="">Todos os anos</option></select>
-        <select id="filtroTipo">
-          <option value="">CAP + SEG</option>
+        <select id="filtroMes">
+          <option value="">Todos os meses</option>
+        </select>
+        <select id="filtroEmpresa">
+          <option value="">Todas as empresas</option>
           <option value="CAP">CAP</option>
           <option value="SEG">SEG</option>
         </select>
-        <select id="filtroUsuario"><option value="">Todos os usuários</option></select>
+        <div class="multiselect" id="multiselectUsuario">
+          <div class="select-box" onclick="toggleCheckboxArea()">
+            <select>
+              <option id="selectBoxText">Todos os usuários</option>
+            </select>
+            <div class="overSelect"></div>
+          </div>
+          <div class="checkboxes" id="checkboxesUsuario"></div>
+        </div>
       </div>
 
       <div class="kpi-row">
@@ -405,16 +634,93 @@
   </main>
 </div>
 
+<!-- Modal de Transferência -->
+<div class="modal-overlay" id="modalTransferencia">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title">Transferir Processo <span id="modalProcessoId">#123</span></h3>
+    </div>
+    <div class="modal-body">
+      <p class="modal-text">Responsável atual: <strong id="modalResponsavelAtual">—</strong></p>
+      <div class="form-group">
+        <label for="selectNovoResponsavel">Novo responsável:</label>
+        <select id="selectNovoResponsavel">
+          <!-- Populado dinamicamente -->
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalTransferencia()">Cancelar</button>
+      <button class="btn" id="btnConfirmarTransferencia" onclick="confirmarTransferencia()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = "http://localhost:8000"
 let dadosGlobais = []
+let usuariosSelecionados = []
+let expanded = false
+
+function toggleCheckboxArea() {
+  const checkboxes = document.getElementById("checkboxesUsuario");
+  if (!expanded) {
+    checkboxes.style.display = "block";
+    expanded = true;
+  } else {
+    checkboxes.style.display = "none";
+    expanded = false;
+  }
+}
+
+function atualizarFiltroUsuarios() {
+  const checkboxes = document.querySelectorAll("#checkboxesUsuario input[type='checkbox']")
+  usuariosSelecionados = []
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      usuariosSelecionados.push(cb.value)
+    }
+  })
+  
+  const selectBoxText = document.getElementById("selectBoxText")
+  if (usuariosSelecionados.length === 0) {
+    selectBoxText.textContent = "Todos os usuários"
+  } else if (usuariosSelecionados.length === 1) {
+    selectBoxText.textContent = usuariosSelecionados[0]
+  } else {
+    selectBoxText.textContent = `${usuariosSelecionados.length} selecionados`
+  }
+  
+  renderDashboard()
+}
+
+function limparFiltroUsuarios(e) {
+  if (e) e.stopPropagation();
+  const checkboxes = document.querySelectorAll("#checkboxesUsuario input[type='checkbox']")
+  checkboxes.forEach(cb => {
+    cb.checked = false
+  })
+  usuariosSelecionados = []
+  document.getElementById("selectBoxText").textContent = "Todos os usuários"
+  renderDashboard()
+}
+
+// Fechar lista de checkboxes se clicar fora
+document.addEventListener("click", function(e) {
+  const container = document.getElementById("multiselectUsuario");
+  const checkboxes = document.getElementById("checkboxesUsuario");
+  if (container && checkboxes && !container.contains(e.target)) {
+    checkboxes.style.display = "none";
+    expanded = false;
+  }
+});
 
 // ── Tema ───────────────────────────────────────────────────────────────────
 const html      = document.documentElement
 const pill      = document.getElementById("togglePill")
 const themeLabel = document.getElementById("themeLabel")
 
-let darkMode = true
+let darkMode = false
 
 document.getElementById("themeToggle").addEventListener("click", () => {
   darkMode = !darkMode
@@ -528,38 +834,59 @@ function popularFiltros() {
     o.value = a; o.textContent = a; selAno.appendChild(o)
   })
 
-  // Usuários
-  const users = [...new Set(dadosGlobais.map(r => r.Responsavel))].sort()
-  const selUser = document.getElementById("filtroUsuario")
-  selUser.innerHTML = '<option value="">Todos os usuários</option>'
-  users.forEach(u => {
+  // Meses (dinâmico com base nos dados existentes)
+  const nomesMeses = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"
+  }
+  const meses = [...new Set(dadosGlobais.map(r => r.Mês))].filter(Boolean).sort((a, b) => a - b)
+  const selMes = document.getElementById("filtroMes")
+  selMes.innerHTML = '<option value="">Todos os meses</option>'
+  meses.forEach(m => {
     const o = document.createElement("option")
-    o.value = u; o.textContent = u; selUser.appendChild(o)
+    o.value = m; o.textContent = nomesMeses[m] || `Mês ${m}`; selMes.appendChild(o)
+  })
+
+  // Usuários (Lista de Checkboxes)
+  const users = [...new Set(dadosGlobais.map(r => r.Responsavel))].filter(Boolean).sort()
+  const checkboxesContainer = document.getElementById("checkboxesUsuario")
+  checkboxesContainer.innerHTML = `
+    <div class="checkbox-actions">
+      <button type="button" class="btn-clear" onclick="limparFiltroUsuarios(event)">Limpar Filtro</button>
+    </div>
+  `
+  users.forEach(u => {
+    const isChecked = usuariosSelecionados.includes(u)
+    const label = document.createElement("label")
+    label.innerHTML = `<input type="checkbox" value="${u}" ${isChecked ? 'checked' : ''} onchange="atualizarFiltroUsuarios()"/> ${u}`
+    checkboxesContainer.appendChild(label)
   })
 }
 
 function dadosFiltrados() {
   const ano     = document.getElementById("filtroAno").value
-  const tipo    = document.getElementById("filtroTipo").value
-  const usuario = document.getElementById("filtroUsuario").value
+  const mes     = document.getElementById("filtroMes").value
+  const empresa = document.getElementById("filtroEmpresa").value
   return dadosGlobais.filter(r =>
     (!ano     || r.Ano          == ano)  &&
-    (!tipo    || r.Tipo         === tipo) &&
-    (!usuario || r.Responsavel  === usuario)
+    (!mes     || r.Mês          == mes)  &&
+    (!empresa || r.Empresa      === empresa) &&
+    (usuariosSelecionados.length === 0 || usuariosSelecionados.includes(r.Responsavel))
   )
 }
 
 document.getElementById("filtroAno").addEventListener("change",     renderDashboard)
-document.getElementById("filtroTipo").addEventListener("change",    renderDashboard)
-document.getElementById("filtroUsuario").addEventListener("change", renderDashboard)
+document.getElementById("filtroMes").addEventListener("change",     renderDashboard)
+document.getElementById("filtroEmpresa").addEventListener("change", renderDashboard)
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
 function renderDashboard() {
   const rows = dadosFiltrados()
 
   const total = rows.reduce((s, r) => s + r.Quantidade, 0)
-  const cap   = rows.filter(r => r.Tipo === "CAP").reduce((s, r) => s + r.Quantidade, 0)
-  const seg   = rows.filter(r => r.Tipo === "SEG").reduce((s, r) => s + r.Quantidade, 0)
+  const cap   = rows.filter(r => r.Empresa === "CAP").reduce((s, r) => s + r.Quantidade, 0)
+  const seg   = rows.filter(r => r.Empresa === "SEG").reduce((s, r) => s + r.Quantidade, 0)
   const resps = new Set(rows.map(r => r.Responsavel)).size
 
   document.getElementById("kpiTotal").textContent = total.toLocaleString("pt-BR")
@@ -569,32 +896,82 @@ function renderDashboard() {
   document.getElementById("kpiCapPct").textContent = total ? `${((cap/total)*100).toFixed(1)}% do total` : "—"
   document.getElementById("kpiSegPct").textContent = total ? `${((seg/total)*100).toFixed(1)}% do total` : "—"
 
-  // Bar chart — top responsáveis
-  const filtroUsuario = document.getElementById("filtroUsuario").value
-  const filtroTipo    = document.getElementById("filtroTipo").value
+  // Bar chart — top responsáveis (Grouped by CAP / SEG or single type depending on filter)
+  const filtroEmpresa = document.getElementById("filtroEmpresa").value
 
-  const porResp = {}
-  rows.forEach(r => { porResp[r.Responsavel] = (porResp[r.Responsavel] || 0) + r.Quantidade })
-  const top    = Object.entries(porResp).sort((a,b) => b[1]-a[1]).slice(0, 8)
-  const maxVal = top[0]?.[1] || 1
+  const mapResp = {}
+  rows.forEach(r => {
+    const resp = r.Responsavel || "Sem Responsável"
+    if (!mapResp[resp]) {
+      mapResp[resp] = { CAP: 0, SEG: 0, Total: 0 }
+    }
+    if (r.Empresa === "CAP") {
+      mapResp[resp].CAP += r.Quantidade
+    } else if (r.Empresa === "SEG") {
+      mapResp[resp].SEG += r.Quantidade
+    }
+    mapResp[resp].Total += r.Quantidade
+  })
+
+  const top = Object.entries(mapResp)
+    .sort((a, b) => b[1].Total - a[1].Total)
+    .slice(0, 6)
+
+  let maxVal = 1
+  top.forEach(([_, info]) => {
+    if (info.CAP > maxVal) maxVal = info.CAP
+    if (info.SEG > maxVal) maxVal = info.SEG
+  })
 
   const barChart = document.getElementById("barChart")
   if (!top.length) {
     barChart.innerHTML = '<div class="empty">Sem dados para o filtro selecionado.</div>'
   } else {
-    barChart.innerHTML = top.map(([nome, val]) => {
-      const pct    = (val / maxVal * 100).toFixed(1)
-      const isUser = filtroUsuario && nome === filtroUsuario
-      const classe = filtroTipo === "SEG" ? "seg" : ""
+    const showCap = (filtroEmpresa === "" || filtroEmpresa === "CAP")
+    const showSeg = (filtroEmpresa === "" || filtroEmpresa === "SEG")
+
+    barChart.innerHTML = top.map(([nome, info]) => {
+      const capPct = info.Total ? ((info.CAP / info.Total) * 100).toFixed(0) : 0
+      const segPct = info.Total ? ((info.SEG / info.Total) * 100).toFixed(0) : 0
+      
+      const capWidth = ((info.CAP / maxVal) * 100).toFixed(1)
+      const segWidth = ((info.SEG / maxVal) * 100).toFixed(1)
+      
+      const isUser = usuariosSelecionados.includes(nome)
       const highlight = isUser ? `style="font-weight:700;color:var(--accent)"` : ""
-      return `
+      const borderHighlight = isUser ? `style="border-color:var(--accent); background:var(--accent-dim)"` : ""
+      
+      const capHtml = showCap ? `
         <div class="bar-item">
           <div class="bar-meta">
-            <span class="bar-name" ${highlight}>${nome}</span>
-            <span class="bar-count">${val}</span>
+            <span class="bar-type-label">CAP</span>
+            <span class="bar-count">${info.CAP} <span class="bar-pct">(${capPct}%)</span></span>
           </div>
           <div class="bar-track">
-            <div class="bar-fill ${classe}" style="width:${pct}%"></div>
+            <div class="bar-fill" style="width:${capWidth}%"></div>
+          </div>
+        </div>` : ""
+
+      const segHtml = showSeg ? `
+        <div class="bar-item">
+          <div class="bar-meta">
+            <span class="bar-type-label">SEG</span>
+            <span class="bar-count">${info.SEG} <span class="bar-pct">(${segPct}%)</span></span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill seg" style="width:${segWidth}%"></div>
+          </div>
+        </div>` : ""
+
+      return `
+        <div class="bar-group-item" ${borderHighlight}>
+          <div class="bar-group-header">
+            <span class="bar-group-name" ${highlight}>${nome}</span>
+            <span class="bar-group-total">Total: ${info.Total}</span>
+          </div>
+          <div class="bar-group-sub" style="${!showCap || !showSeg ? 'border-left: none; padding-left: 0;' : ''}">
+            ${capHtml}
+            ${segHtml}
           </div>
         </div>`
     }).join("")
@@ -717,17 +1094,93 @@ async function carregarHistorico() {
       return
     }
 
-    const cols = Object.keys(rows[0])
-    const ths  = cols.map(c => `<th>${c}</th>`).join("")
-    const trs  = rows.map(r => `
-      <tr>${cols.map(c => {
-        if (c === "Tipo") return `<td><span class="badge ${r[c].toLowerCase()}">${r[c]}</span></td>`
-        return `<td>${r[c] ?? "—"}</td>`
-      }).join("")}</tr>`).join("")
+    const cols = ["id", "processo", "responsavel_original", "Responsavel", "Empresa", "Ano", "Mês"]
+    const labels = ["ID", "Processo", "Responsável Original", "Responsável Atual", "Empresa", "Ano", "Mês", "Ações"]
+    const ths  = labels.map(l => `<th>${l}</th>`).join("")
+    const trs  = rows.map(r => {
+      const escapedResp = (r.Responsavel || '').replace(/'/g, "\\'");
+      return `
+      <tr>
+        ${cols.map(c => {
+          if (c === "Empresa") return `<td><span class="badge ${r[c].toLowerCase()}">${r[c]}</span></td>`
+          return `<td>${r[c] ?? "—"}</td>`
+        }).join("")}
+        <td>
+          <button class="btn" style="margin-top:0; padding:6px 12px; font-size:11px;" onclick="abrirModalTransferencia('${r.id}', '${escapedResp}')">Transferir</button>
+        </td>
+      </tr>`;
+    }).join("")
 
     wrap.innerHTML = `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`
   } catch {
     wrap.innerHTML = '<div class="empty">Erro ao carregar dados. O servidor está online?</div>'
+  }
+}
+
+// ── Funções de Transferência de Processo ──────────────────────────────────
+let processoIdAtual = null;
+
+function abrirModalTransferencia(id, responsavelAtual) {
+  processoIdAtual = id;
+  document.getElementById("modalProcessoId").textContent = `#${id}`;
+  document.getElementById("modalResponsavelAtual").textContent = responsavelAtual || "Sem responsável";
+  
+  // Extrai responsáveis únicos da variável dadosGlobais
+  const users = [...new Set(dadosGlobais.map(r => r.Responsavel))].filter(Boolean).sort();
+  const sel = document.getElementById("selectNovoResponsavel");
+  sel.innerHTML = "";
+  
+  users.forEach(u => {
+    const o = document.createElement("option");
+    o.value = u;
+    o.textContent = u;
+    if (u === responsavelAtual) {
+      o.selected = true;
+    }
+    sel.appendChild(o);
+  });
+  
+  document.getElementById("modalTransferencia").classList.add("active");
+}
+
+function fecharModalTransferencia() {
+  document.getElementById("modalTransferencia").classList.remove("active");
+}
+
+async function confirmarTransferencia() {
+  const novoResp = document.getElementById("selectNovoResponsavel").value;
+  if (!novoResp) {
+    alert("Por favor, selecione um novo responsável.");
+    return;
+  }
+  
+  const btn = document.getElementById("btnConfirmarTransferencia");
+  btn.disabled = true;
+  
+  try {
+    const res = await fetch(`${API}/processos/${processoIdAtual}/transferir`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ novo_responsavel: novoResp })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      fecharModalTransferencia();
+      alert("✅ Processo transferido com sucesso!");
+      await carregarDados();
+      await carregarHistorico();
+      renderDashboard();
+    } else {
+      alert("❌ Erro ao transferir processo: " + (data.detail || "Erro desconhecido"));
+    }
+  } catch (err) {
+    alert("❌ Erro de conexão ao tentar transferir processo.");
+  } finally {
+    btn.disabled = false;
   }
 }
 

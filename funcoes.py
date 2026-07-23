@@ -9,7 +9,8 @@ from tkinter import filedialog
 COLUNAS = {
     "id":          0,
     "processo":    2,
-    "responsavel": 28,
+    "status":      9,
+    "responsavel": 39,
     "data":        33,
 }
 
@@ -42,9 +43,18 @@ def ler_planilha(arquivo: str) -> pd.DataFrame:
 
 # ── Transformação ────────────────────────────────────────────────────────────
 def limpar_dados(df: pd.DataFrame) -> pd.DataFrame:
-    """Deduplica, parseia datas e remove linhas com data inválida."""
-    col_id   = df.columns[COLUNAS["id"]]
-    col_data = df.columns[COLUNAS["data"]]
+    """Filtra por status finalizado ou prefixo TA023, deduplica, parseia datas e remove linhas com data inválida."""
+    col_id       = df.columns[COLUNAS["id"]]
+    col_processo = df.columns[COLUNAS["processo"]]
+    col_status   = df.columns[COLUNAS["status"]]
+    col_data     = df.columns[COLUNAS["data"]]
+
+    # Filtrar apenas registros com status "finalizado" OU cujo processo inicia com "TA023"
+    antes_filtro = len(df)
+    cond_finalizado = df[col_status].astype(str).str.strip().str.lower() == "finalizado"
+    cond_ta023      = df[col_processo].astype(str).str.strip().str.upper().str.startswith("TA023")
+    df = df[cond_finalizado | cond_ta023]
+    print(f"Filtro (finalizado ou TA023): {antes_filtro - len(df)} linha(s) filtrada(s), {len(df)} restantes.")
 
     antes = len(df)
     df = df.drop_duplicates(subset=[col_id])
@@ -60,11 +70,11 @@ def limpar_dados(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def classificar(df: pd.DataFrame) -> pd.DataFrame:
-    """Adiciona colunas Tipo, Ano e Mês."""
+    """Adiciona colunas Empresa, Ano e Mês."""
     col_processo = df.columns[COLUNAS["processo"]]
     col_data     = df.columns[COLUNAS["data"]]
 
-    df["Tipo"] = df[col_processo].astype(str).str.upper().apply(
+    df["Empresa"] = df[col_processo].astype(str).str.upper().apply(
         lambda x: "CAP" if "CAP" in x else "SEG"
     )
     df["Ano"] = df[col_data].dt.year
@@ -73,61 +83,43 @@ def classificar(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def gerar_fato(df: pd.DataFrame) -> pd.DataFrame:
-    """Agrega dados para a tabela fato (histórico normalizado)."""
-    col_responsavel = df.columns[COLUNAS["responsavel"]]
-
-    return (
-        df.groupby([col_responsavel, "Tipo", "Ano", "Mês"])
-        .size()
-        .reset_index(name="Quantidade")
-        .rename(columns={col_responsavel: "Responsavel"})
-    )
-
-
 # ── Persistência ─────────────────────────────────────────────────────────────
 def get_conexao(db_path: str = DB_PATH) -> sqlite3.Connection:
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     return sqlite3.connect(db_path)
 
 
-def salvar_consulta(df: pd.DataFrame, con: sqlite3.Connection) -> str:
-    """Salva snapshot completo da planilha. Retorna o nome da tabela criada."""
-    col_data = df.columns[COLUNAS["data"]]
-    ano_mes  = df[col_data].min().strftime("%Y%m")
+def salvar_processos(df: pd.DataFrame, con: sqlite3.Connection) -> None:
+    """Salva os processos novos na tabela 'processos'."""
+    col_id = df.columns[COLUNAS["id"]]
+    col_processo = df.columns[COLUNAS["processo"]]
+    col_responsavel = df.columns[COLUNAS["responsavel"]]
 
-    df_consulta = df.rename(columns={
-        df.columns[COLUNAS["id"]]:          "id",
-        df.columns[COLUNAS["processo"]]:    "processo",
-        df.columns[COLUNAS["responsavel"]]: "responsavel",
-        col_data:                           "data",
+    df_processos = pd.DataFrame({
+        "id": df[col_id],
+        "processo": df[col_processo],
+        "responsavel_original": df[col_responsavel],
+        "responsavel_atual": df[col_responsavel],
+        "Empresa": df["Empresa"],
+        "Ano": df["Ano"],
+        "Mês": df["Mês"]
     })
 
-    tabela = f"consulta_{ano_mes}"
-    df_consulta.to_sql(tabela, con, if_exists="replace", index=False)
-    print(f"Tabela '{tabela}' salva no banco.")
-    return tabela
-
-
-def salvar_historico(fato: pd.DataFrame, con: sqlite3.Connection) -> None:
-    """Upsert no histórico: remove períodos afetados e insere novos dados."""
     tabelas = pd.read_sql(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='historico'", con
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='processos'", con
     )
 
     if not tabelas.empty:
-        periodos = fato[["Responsavel", "Tipo", "Ano", "Mês"]].drop_duplicates()
-        for _, row in periodos.iterrows():
-            con.execute(
-                "DELETE FROM historico WHERE Responsavel=? AND Tipo=? AND Ano=? AND Mês=?",
-                (row["Responsavel"], row["Tipo"], row["Ano"], row["Mês"])
-            )
-        con.commit()
-        fato.to_sql("historico", con, if_exists="append", index=False)
+        ids_existentes = set(pd.read_sql("SELECT id FROM processos", con)["id"].astype(str).tolist())
+        df_novos = df_processos[~df_processos["id"].astype(str).isin(ids_existentes)]
+        if not df_novos.empty:
+            df_novos.to_sql("processos", con, if_exists="append", index=False)
+            print(f"Inseridos {len(df_novos)} novos registros na tabela 'processos'.")
+        else:
+            print("Nenhum novo registro para inserir.")
     else:
-        fato.to_sql("historico", con, if_exists="replace", index=False)
-
-    print("Tabela 'historico' atualizada no banco.")
+        df_processos.to_sql("processos", con, if_exists="append", index=False)
+        print(f"Tabela 'processos' criada e {len(df_processos)} registros inseridos.")
 
 
 # ── Pipeline ─────────────────────────────────────────────────────────────────
@@ -136,12 +128,10 @@ def processar_arquivo(arquivo: str, db_path: str = DB_PATH) -> None:
     df   = ler_planilha(arquivo)
     df   = limpar_dados(df)
     df   = classificar(df)
-    fato = gerar_fato(df)
 
     con = get_conexao(db_path)
     try:
-        salvar_consulta(df, con)
-        salvar_historico(fato, con)
+        salvar_processos(df, con)
     finally:
         con.close()
 
